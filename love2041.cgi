@@ -29,11 +29,46 @@ sub browse_screen {
 	my $student_to_show  = $students[$n];
 	my $profile_filename = "$student_to_show/profile.txt";
 	open my $p, "$profile_filename" or die "can not open $profile_filename: $!";
-	$profile = join '', <$p>;
+	#$profile = join '', <$p>;
+	while (<$p>) {
+		if ($_=~/^[a-z]+_*[a-z]*:/) {
+			if (($_!~/^name:/) 
+			&& ($_!~/^email:/) 
+			&&	($_ !~/^password:/) 
+			&& ($_ !~/^courses:/)) {
+				$profile .= $_;
+				while(<$p>) {
+				last if $_ !~/^\s/;
+				$profile .= $_;
+				}
+				redo;
+			}
+		}
+	} 
+	
 	close $p;
 	
-	return p,
+	#SUBSET0 - Hiding Private information of each member: 
+	#1) Real Name 2) email 3) password 4) courses taken.	
+
+
+	#SUBSET0 - displaying profile image
+
+	$profile_image_name = "$student_to_show/profile.jpg";
+	#open my $p_image, "$profile_image_name" or die "can not open $profile_image_name: $!";
+	#$profile_image_name = "$profile_image_name"."profile.jpg";
+	#print "$profile_imagename";
+	#print "<img src='$profile_image_name' width='25%' height='25p%' + />";
+	#close $p_image;
+
+	#SUBSET1 - Creating a main page
+
+
+
+	return p,	
+		h1("CUPID"),"\n",	
 		start_form, "\n",
+		img({src=>$profile_image_name,width=>'10%', height=>'25%'}),"\n",
 		pre($profile),"\n",
 		hidden('n', $n + 1),"\n",
 		submit('Next student'),"\n",
@@ -46,8 +81,11 @@ sub browse_screen {
 #
 sub page_header {
 	return header,
-   		start_html("-title"=>"LOVE2041", -bgcolor=>"#FEDCBA"),
- 		center(h2(i("LOVE2041")));
+		start_html('CUPID'),"\n"
+		#h2('CUPID'),"\n";
+ #  		start_html("-title"=>"LOVE2041", -bgcolor=>"#FEDCBA"),
+	#	"<link rel='stylesheet' href='styles.css'>"
+ 	#	center(h2(i("LOVE2041")));
 }
 
 #
