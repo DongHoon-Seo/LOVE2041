@@ -11,23 +11,140 @@ use List::Util qw/min max/;
 warningsToBrowser(1);
 
 # print start of HTML ASAP to assist debugging if there is an error in the script
-print page_header();
-
 # some globals used through the script
-$debug = 0;
+$debug = 1;
 $students_dir = "./students";
 
-#displau_profiles will contain all the profiles to be displayed on the main_index_screen. Default set size = 6.
-my (@display_profiles) = display_set_generator(6); 
+#This is where all the magic happens ===========================================================================
+
+print page_header();
+
+	print "Restarted Script";
+	$login_state = param('login');
+
+if (defined param('press_action')) {
+
+	print h2("INSIDE PROFILE");
+	print h2("action pressed");
+	$profile_selected = param('press_action');
+	print browse_screen($profile_selected);
+
+} elsif ((defined param('login') && $login_state eq "login") || defined param('back_button')) {
+
+	#displau_profiles will contain all the profiles to be displayed on the main_index_screen. Default set size = 6.
+	my (@display_profiles) = display_set_generator(6); 
+	main_index_screen(@display_profiles);
+
+} elsif (defined param('username')) {
+	print h2("in username");
+	print start_form;
+	print br(), "\n";
+	print center('Username: ', textfield('username', '' , 20));
+	print center('Password: ', password_field('password','',20));
+#	print param('login', $login_state);
+#	print param('username', $username);
+#	print param('password', $password);
+#	print hidden('login');
+#	print hidden('username');
+#	print hidden('password');
+
+	if(defined param('login')) {
+		print h2('LOGIN DEFINED'); 
+	} 
+	if($login_state eq 'login') {
+		print h2('LOGIN is correct');
+	}
+
+	if (check_login(param('username'))) {
+		#print hidden('username');
+		#print hidden('password');
+		$login_state = "login";
+		#$login_state = 1;
+	} else {
+		print center(h2("username or password not correct"));
+		$login_state = "false";
+	}
+
+	print center(submit ('login'));
+	print end_form;
+
+} elsif (!defined param('username') || !defined param('password') || !defined param('login')) {
+	print h2("in login");
+	#login page
+
+	print start_form;
+	print br(), "\n";
+	print center('Username: ', textfield('username', '' , 20));
+	print center('Password: ', password_field('password','',20));
+	print center(submit ('login'));
+	print param('login', $login_state);
+	print param('username', $username);
+	print param('password', $password);
+	print hidden('login', 'false');
+	print hidden('username');
+	print hidden('password');
+	print end_form;
+
+} else {
+	print center(h2("ops error occurred"));
+}
+
+print page_trailer();
+
+#==========================================================================================================================
+
 if($debug) {
 	foreach $profile (@display_profiles) {
 		print "MAIN: $profile ;";
 	}
+	print br();
+	@names = param;
+	foreach $name (@names) {
+		print "$name = ";
+		print param($name);
+		print br();
+	}
 }
-main_index_screen(@display_profiles);
-print browse_screen(@display_profiles[0]);
-print page_trailer();
+
 exit 0;	
+
+
+
+sub check_login {
+	my $username = param('username');
+	my $password = param('password');
+
+	#print $username;
+	#print $password;
+
+	$fail = 0;
+	$success = 1;
+
+	$student_path = "./students/$username";
+	my $profile_file = "$student_path/profile.txt";
+	open my $p, "$profile_file" or return $fail;
+	while (<$p>) {
+		if ($_=~/^[a-z]+_*[a-z]*:/) {
+			if ($_=~/^password:/) {
+				#$user_password = $_;
+				while(<$p>) {
+				last if $_ !~/^\s/;
+				$user_password = $_;
+				}
+				redo;
+			}
+		}
+	} 
+	
+	#print $user_password;
+	$user_password =~ s/\W//g;
+
+	if ($password eq $user_password) {
+		return $success;
+	} else {
+		return $fail;
+	}
+}
 
 #display_set_generator takes in a integer which serves as the number of students that are to be displayed on main_index_screen.
 #Input : Integer (default set to 6) 
@@ -63,8 +180,11 @@ sub main_index_screen {
 		$student_username = $student;
 		$student_username =~ s/.\/students\///;
 
-		print img({src=>$profile_icon, width=>'20%', height=>'30%'});
-		print pre($student_username);
+		print img({src=>$profile_icon, width=>'20%', height=>'30%'}), "\n";
+		print br(),"\n";
+		print submit("press_action", $student_username),"\n"; #To make name text clickable use CSS
+		#print hidden($student_username, $student);
+		print hr(),"\n";
 		
 		if($debug) {
 			print "main_index_screen: $student_username\n";
@@ -78,6 +198,7 @@ sub main_index_screen {
 
 sub browse_screen {
 	my ($student_to_show) = @_;
+	$student_to_show = "./students/$student_to_show";
 	my $profile_file_name = "$student_to_show/profile.txt";
 	open my $p, "$profile_file_name" or die "can not open $profile_file_name: $!";
 	#$profile = join '', <$p>;
@@ -122,7 +243,7 @@ sub browse_screen {
 		pre($profile),"\n",
 		hidden('n', $n + 1),"\n",
 		hidden('x', $x + 6),"\n", #Detele later when generate is done.
-		submit('Next student'),"\n",
+		submit('back_button','Back to your selections'),"\n",
 		end_form, "\n",
 		p, "\n";
 }
@@ -132,9 +253,11 @@ sub browse_screen {
 #
 sub page_header {
 	return header,
-		start_html('Cupid Online'),
-		h1('CUPID ONLINE');
-		#h2('CUPID'),"\n";
+		start_html(
+					-title => 'Cupid Online',
+					-bgcolor => 'grey',
+					),"\n",
+		center(h2('CUPID')),"\n";
  #  		start_html("-title"=>"LOVE2041", -bgcolor=>"#FEDCBA"),
 	#	"<link rel='stylesheet' href='styles.css'>"
  	#	center(h2(i("LOVE2041")));
